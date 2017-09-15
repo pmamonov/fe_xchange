@@ -1,0 +1,195 @@
+&GLOBAL
+  PROJECT FE2_SOL_10-MTD
+  RUN_TYPE  md
+  PREFERRED_FFT_LIBRARY FFTMKL # FFTW
+  PRINT_LEVEL LOW
+&END GLOBAL
+
+&MOTION
+  &PRINT
+    &TRAJECTORY ON
+      FORMAT DCD
+      FILENAME =fe2_sol_10-mtd.dcd
+    &END TRAJECTORY
+  &END
+  &MD
+    ENSEMBLE NVT
+    STEPS 40000
+    TIMESTEP 0.5
+    TEMPERATURE 300.0
+    &THERMOSTAT
+      TYPE CSVR
+      REGION GLOBAL
+      &CSVR
+        TIMECON 50
+      &END
+    &END
+  &END MD
+  &FREE_ENERGY
+    METHOD METADYN
+    &METADYN
+      LAGRANGE
+      LANGEVIN
+      TEMPERATURE 300
+      DO_HILLS
+      WW [kcalmol] 0.1
+      NT_HILLS 20
+      &METAVAR
+        COLVAR 1
+        SCALE 0.011
+        lambda 100
+        mass 500
+        gamma 0.2
+      &END METAVAR
+      &PRINT
+        &COLVAR
+          COMMON_ITERATION_LEVELS	20000
+        &END
+      &END PRINT
+    &END METADYN
+  &END
+&END MOTION
+
+&MULTIPLE_FORCE_EVALS
+  FORCE_EVAL_ORDER 1 2
+  MULTIPLE_SUBSYS F
+&END
+
+
+&FORCE_EVAL
+  METHOD QS
+  &DFT
+    CHARGE 2
+    MULTIPLICITY 5
+    UKS TRUE
+    BASIS_SET_FILE_NAME BASIS_MOLOPT
+    POTENTIAL_FILE_NAME POTENTIAL
+    &MGRID
+      CUTOFF 280
+      COMMENSURATE
+      NGRIDS 5
+    &END MGRID
+    &QS
+      METHOD GPW
+      EXTRAPOLATION PS
+      MAP_CONSISTENT T
+    &END QS
+    &SCF
+      SCF_GUESS RESTART
+#      SCF_GUESS ATOMIC
+      EPS_SCF 1.0E-5
+      MAX_SCF 500
+      EPS_EIGVAL 1.0e-7
+      CHOLESKY REDUCE
+      &OT T
+        PRECONDITIONER FULL_ALL
+        ENERGY_GAP 0.005
+	      MINIMIZER CG
+      &END OT
+    &END SCF
+    &XC
+      &XC_FUNCTIONAL BLYP
+      &END XC_FUNCTIONAL
+    &END XC
+    &POISSON
+      PERIODIC XYZ
+      POISSON_SOLVER PERIODIC
+    &END POISSON
+  &END DFT
+&END
+
+&FORCE_EVAL
+  METHOD QS
+  &DFT
+    CHARGE 3
+    MULTIPLICITY 4
+    UKS TRUE
+    BASIS_SET_FILE_NAME BASIS_MOLOPT
+    POTENTIAL_FILE_NAME POTENTIAL
+    &MGRID
+      CUTOFF 280
+      COMMENSURATE
+      NGRIDS 5
+    &END MGRID
+    &QS
+      METHOD GPW
+      EXTRAPOLATION PS
+      MAP_CONSISTENT T
+    &END QS
+    &SCF
+      SCF_GUESS RESTART
+#      SCF_GUESS ATOMIC
+      EPS_SCF 1.0E-5
+      MAX_SCF 500
+      EPS_EIGVAL 1.0e-7
+      CHOLESKY REDUCE
+      &OT T
+        PRECONDITIONER FULL_ALL
+        ENERGY_GAP 0.005
+	      MINIMIZER CG
+      &END OT
+    &END SCF
+    &XC
+      &XC_FUNCTIONAL BLYP
+      &END XC_FUNCTIONAL
+    &END XC
+    &POISSON
+      PERIODIC XYZ
+      POISSON_SOLVER PERIODIC
+    &END POISSON
+  &END DFT
+&END
+
+
+&FORCE_EVAL
+  METHOD MIXED
+  &MIXED
+    MIXING_TYPE GENMIX
+    NGROUPS  2
+    &GENERIC
+      MIXING_FUNCTION E1+k*E2
+      VARIABLES E1 E2
+# Propagate the Equation of Motion according to the neutral state Hamiltonian by using only the energy of the charge == 0 system
+      PARAMETERS k
+      VALUES 0.
+    &END
+  &END
+
+  &SUBSYS
+    &CELL
+      ABC 10 10 10
+      PERIODIC XYZ
+    &END CELL
+
+    &coord
+@include 'fe2_opt.coord'
+    &end
+
+    &KIND Fe
+      BASIS_SET DZVP-MOLOPT-SR-GTH
+      POTENTIAL GTH-BLYP-q16
+    &END KIND
+
+    &KIND O
+      BASIS_SET DZVP-MOLOPT-SR-GTH
+      POTENTIAL GTH-BLYP-q6
+    &END KIND
+
+    &KIND H
+      BASIS_SET DZVP-MOLOPT-SR-GTH
+      POTENTIAL GTH-BLYP-q1
+    &END KIND
+
+    &COLVAR
+      &U
+        &MIXED
+# we define the difference of the two energies as CV.
+# You can specify here in general whatever function you like!!!!!
+          ENERGY_FUNCTION E2-E1
+          VARIABLES E1 E2
+        &END
+      &END
+   &END COLVAR
+
+  &END SUBSYS
+&END FORCE_EVAL

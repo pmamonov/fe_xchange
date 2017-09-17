@@ -1,3 +1,5 @@
+#!/usr/bin/env ipython --pylab
+
 from pickle import load
 ea = load("ea.dump")
 f = open("ea.dump")
